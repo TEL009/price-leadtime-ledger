@@ -193,6 +193,13 @@ details.reader{
     table.ledger{min-width:760px;}
     .panel-body,.panel-footer{padding-left:16px;padding-right:16px;}
   }
+  .dest-toggle{display:flex;gap:0;border:1px solid var(--line);border-radius:4px;overflow:hidden;background:#fff;width:fit-content;max-width:100%;}
+  .dest-toggle label{display:flex;align-items:center;gap:6px;padding:8px 14px;font-size:.88rem;font-weight:700;color:var(--steel);cursor:pointer;}
+  .dest-toggle label + label{border-left:1px solid var(--line);}
+  .dest-toggle input{accent-color:var(--amber);}
+  .dest-toggle label.on{background:var(--amber-soft);color:var(--navy);}
+  .maker-box{border:1px solid var(--line);border-radius:4px;background:#fbfaf6;padding:12px;}
+  .badge-fax{background:#efe7f6;color:#5b3f86;margin-left:6px;}
 </style>
 </head>
 <body>
@@ -200,7 +207,7 @@ details.reader{
 <header class="app-head">
   <div>
     <h1>価格・納期問合せ台帳 <span class="ver" id="appVer"></span></h1>
-    <p>メーカーへの価格・納期問合せを登録し、FAX等で届いた回答はスキャンPDFのまま添付して保管します。回答の価格・納期は自動読み取り（またはテキスト貼り付け）で台帳に残せます。Excel出力は既存の問合せ表フォーマットにそのまま反映されます。</p>
+    <p>メーカーへの価格・納期問合せを登録し、FAX等で届いた回答はスキャンPDFのまま添付して保管します。回答の価格・納期は自動読み取り（またはテキスト貼り付け）で台帳に残せます。いわき宛はExcelの問合せ表、メーカー宛はFAX送付状（Word）で出力できます。</p>
   </div>
   <div class="head-actions">
     <button class="btn-settings" id="btnSettings">支店・氏名・連絡先の設定</button>
@@ -250,6 +257,8 @@ details.reader{
       <button id="btnSettingsClose">×</button>
     </div>
     <div class="modal-body">
+      <div class="field"><label>会社名（FAX送付状用）</label>
+        <input type="text" id="s_company" placeholder="株式会社アルティア"></div>
       <div class="field"><label>支店・部署</label>
         <input type="text" id="s_branch" placeholder="例）名古屋支店　サービス課"></div>
       <div class="field"><label>問合せ者</label>
@@ -258,6 +267,8 @@ details.reader{
         <input type="text" id="s_tel" placeholder="052-775-4010"></div>
       <div class="field"><label>FAX番号</label>
         <input type="text" id="s_fax" placeholder="052-775-4050"></div>
+      <div class="field"><label>e-mail（FAX送付状用・任意）</label>
+        <input type="text" id="s_email" placeholder="例）name@example.co.jp"></div>
       <hr class="sep">
       <div class="field"><label>Gemini APIキー（任意）</label>
         <input type="password" id="s_geminiKey" autocomplete="off" placeholder="AIza… （Google AI Studioで発行）"></div>
@@ -278,8 +289,8 @@ details.reader{
 <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
 <script>
 /* ============ バージョン ============ */
-const APP_VERSION = "1.2.1";          // 変更したら CHANGELOG.md も更新する
-const APP_BUILD_DATE = "2026-10-08";
+const APP_VERSION = "1.3.0";          // 変更したら CHANGELOG.md も更新する
+const APP_BUILD_DATE = "2026-11-02";
 
 /* ============ テンプレート(元Excel/base64) ============ */
 const TEMPLATE_XLSX_BASE64 = "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";
@@ -326,8 +337,9 @@ const DEFAULTS_KEY = "priceInquiryLedger_defaults_v1";
 function loadDefaults(){
   try{
     const raw = localStorage.getItem(DEFAULTS_KEY);
-    return raw ? JSON.parse(raw) : {branch:"", requester:"", tel:"", fax:""};
-  }catch(e){ return {branch:"", requester:"", tel:"", fax:""}; }
+    const base = {company:"株式会社アルティア", branch:"", requester:"", tel:"", fax:"", email:""};
+    return raw ? Object.assign(base, JSON.parse(raw)) : base;
+  }catch(e){ return {company:"株式会社アルティア", branch:"", requester:"", tel:"", fax:"", email:""}; }
 }
 function saveDefaults(d){ try{ localStorage.setItem(DEFAULTS_KEY, JSON.stringify(d)); }catch(e){} }
 let defaults = loadDefaults();
@@ -344,6 +356,8 @@ let gemini = loadGemini();
 
 const settingsOverlay = $("settingsOverlay");
 function openSettings(){
+  $("s_company").value = defaults.company || "";
+  $("s_email").value = defaults.email || "";
   $("s_branch").value = defaults.branch || "";
   $("s_requester").value = defaults.requester || "";
   $("s_tel").value = defaults.tel || "";
@@ -358,6 +372,8 @@ $("btnSettingsClose").addEventListener("click", closeSettings);
 $("btnSettingsCancel").addEventListener("click", closeSettings);
 $("btnSettingsSave").addEventListener("click", ()=>{
   defaults = {
+    company: $("s_company").value,
+    email: $("s_email").value.trim(),
     branch: $("s_branch").value,
     requester: $("s_requester").value,
     tel: $("s_tel").value,
@@ -436,7 +452,14 @@ function blankEntry(){
     answerNote: "",
     answerText: "",          // 読み取り/貼り付けた全文
     answerAuto: "",          // 'pdf' | 'ocr' | 'paste' | 'gemini' | ''(手入力)
-    answerChecked: false     // 原本と見比べて確認済み
+    answerChecked: false,    // 原本と見比べて確認済み
+    dest: "iwaki",           // 'iwaki'(社内問合せ表Excel) | 'maker'(メーカーFAX送付状Word)
+    makerId: "",
+    maker: null,             // {name, dept, attn, short, fax} 出力時の宛先スナップショット
+    faxSubject: "",          // 空なら自動
+    faxMachine: "",          // 「表題の件、」に続く対象機（空なら 商品名・型式 から自動）
+    faxRequest: "",          // 依頼文（空なら問合せ種別から自動）
+    faxPages: "1"
   };
 }
 function statusOf(e){ return e.receivedDate ? "done" : "wait"; }
@@ -748,7 +771,7 @@ function renderList(){
   rows = rows.filter(e=>{
     if(sf && statusOf(e) !== sf) return false;
     if(!q) return true;
-    const hay = [e.productNo,e.productName,e.modelSpec,e.answerPrice,e.answerDelivery,e.answerNote,e.answerText].join(" ").toLowerCase();
+    const hay = [e.productNo,e.productName,e.modelSpec,e.maker&&e.maker.name,e.maker&&e.maker.short,e.answerPrice,e.answerDelivery,e.answerNote,e.answerText].join(" ").toLowerCase();
     return hay.includes(q);
   });
 
@@ -765,7 +788,7 @@ function renderList(){
     return `<tr data-id="${e.id}">
       <td class="mono">${fmtDate(e.issueDate)}</td>
       <td class="mono">${escapeHtml(e.productNo)}</td>
-      <td>${escapeHtml(e.productName)}</td>
+      <td>${escapeHtml(e.productName)}${e.dest==="maker" ? `<span class="badge badge-fax">FAX ${escapeHtml((e.maker&&(e.maker.short||e.maker.name))||"メーカー")}</span>` : ""}</td>
       <td class="mono">${escapeHtml(e.modelSpec)}</td>
       <td>${badge}</td>
       <td class="mono">${fmtDate(e.receivedDate)}</td>
@@ -860,6 +883,13 @@ function renderPanelBody(){
     <div class="section-title">問合せ元</div>
     <div id="fromLineArea">${fromLineHtml()}</div>
 
+    <div class="section-title">宛先・出力形式</div>
+    <div class="dest-toggle" id="destToggle">
+      <label class="${draft.dest!=="maker"?"on":""}"><input type="radio" name="f_dest" value="iwaki" ${draft.dest!=="maker"?"checked":""}> いわき（問合せ表Excel）</label>
+      <label class="${draft.dest==="maker"?"on":""}"><input type="radio" name="f_dest" value="maker" ${draft.dest==="maker"?"checked":""}> メーカー（FAX送付状Word）</label>
+    </div>
+    <div id="makerArea" style="display:${draft.dest==="maker"?"block":"none"};margin-top:12px;"></div>
+
     <div class="section-title">問合せ内容</div>
     <div class="field-grid">
       <div class="field"><label>発行月日</label>
@@ -880,7 +910,7 @@ function renderPanelBody(){
       </div>
       <div class="field full"><label>問合せ内容</label>
         <textarea id="f_inquiryContent" rows="6">${escapeHtml(draft.inquiryContent)}</textarea>
-        <p class="hint">1行ずつ元シートの罫線に合わせて出力されます（最大12行）。</p>
+        <p class="hint" id="contentHint"></p>
       </div>
       <div class="field full">
         <label>部品図（写真）</label>
@@ -891,7 +921,7 @@ function renderPanelBody(){
             <button type="button" class="btn-ghost" id="btnPickPhoto">写真を選択</button>
             <button type="button" class="btn-ghost" id="btnRemovePhoto" style="display:${draft.photoDataUrl?"inline-block":"none"}">写真を削除</button>
           </div>
-          <p class="hint">Excel出力時は部品図欄（H〜L列）にそのまま貼り付けられます。</p>
+          <p class="hint" id="photoHint"></p>
         </div>
       </div>
     </div>
@@ -941,6 +971,16 @@ function renderPanelBody(){
   `;
   renderAnswerFileBox();
   renderAutoNotice();
+  renderMakerArea();
+  applyDestUi();
+  document.querySelectorAll('input[name="f_dest"]').forEach(r=> r.addEventListener("change", ()=>{
+    draft.dest = document.querySelector('input[name="f_dest"]:checked').value;
+    if(draft.dest==="maker" && !draft.maker && makers.length){ draft.maker = Object.assign({}, makers[0]); draft.makerId = makers[0].id; renderMakerArea(); }
+    applyDestUi();
+  }));
+  ["f_productName","f_modelSpec","f_type_price","f_type_delivery","f_type_other"].forEach(id=>{
+    const el = $(id); if(el) el.addEventListener(el.type==="checkbox"?"change":"input", refreshFaxPlaceholders);
+  });
 
   $("btnEditDefaults").addEventListener("click", openSettings);
 
@@ -968,6 +1008,77 @@ function renderPanelBody(){
   $("btnReadOcr").addEventListener("click", ()=> readAttachedFile({auto:false, forceOcr:true}));
   $("btnReadGemini").addEventListener("click", readWithGemini);
   $("btnParseText").addEventListener("click", parseFromTextarea);
+}
+
+/* ---- 宛先（メーカーFAX）UI ---- */
+function applyDestUi(){
+  const isMaker = draft.dest === "maker";
+  $("makerArea").style.display = isMaker ? "block" : "none";
+  document.querySelectorAll("#destToggle label").forEach(l=>{
+    const r = l.querySelector("input"); l.classList.toggle("on", r.checked);
+  });
+  $("contentHint").innerHTML = isMaker
+    ? "1行に1部品を書きます。FAXでは各行が「・部品名　＠＿＿＿円」になります（納期にチェックすると納期欄も付きます）。※で始まる行は注記としてそのまま入ります。"
+    : "1行ずつ元シートの罫線に合わせて出力されます（最大12行）。";
+  $("photoHint").textContent = isMaker
+    ? "FAX送付状の本文の下に部品図として入ります。"
+    : "Excel出力時は部品図欄（H〜L列）にそのまま貼り付けられます。";
+  btnExportExcel.textContent = isMaker ? "FAX出力（Word）" : "Excel出力";
+  refreshFaxPlaceholders();
+}
+function makerOptionsHtml(){
+  const cur = draft.makerId || "";
+  const opts = makers.map(m=>`<option value="${m.id}" ${m.id===cur?"selected":""}>${escapeHtml(m.short ? `${m.short}（${m.name}）` : m.name)}</option>`).join("");
+  const unknown = (!cur && draft.maker && draft.maker.name) ? `<option value="" selected>${escapeHtml(draft.maker.name)}</option>` : "";
+  return unknown + opts + `<option value="__new">＋ 新しい宛先を追加</option>`;
+}
+function renderMakerArea(){
+  const m = draft.maker || blankMaker();
+  $("makerArea").innerHTML = `
+    <div class="maker-box">
+      <div class="field-grid">
+        <div class="field full"><label>宛先メーカー</label>
+          <select id="f_makerSel">${makerOptionsHtml()}</select></div>
+        <div class="field full"><label>会社名</label>
+          <input type="text" id="f_mk_name" value="${escapeHtml(m.name)}" placeholder="例）株式会社富士コンプレッサー製作所"></div>
+        <div class="field"><label>営業所・部署（「御中」の前）</label>
+          <input type="text" id="f_mk_dept" value="${escapeHtml(m.dept)}" placeholder="例）名古屋営業所"></div>
+        <div class="field"><label>ご担当者（「様」の前・空欄可）</label>
+          <input type="text" id="f_mk_attn" value="${escapeHtml(m.attn)}" placeholder="例）ご担当者"></div>
+        <div class="field"><label>略称（ファイル名・一覧用）</label>
+          <input type="text" id="f_mk_short" value="${escapeHtml(m.short)}" placeholder="例）富士コン"></div>
+        <div class="field"><label>先方FAX番号（控え・任意）</label>
+          <input type="text" id="f_mk_fax" value="${escapeHtml(m.fax)}"></div>
+        <div class="field full"><label>件名</label>
+          <input type="text" id="f_faxSubject" value="${escapeHtml(draft.faxSubject)}"></div>
+        <div class="field full"><label>対象機（「表題の件、」に続く文）</label>
+          <input type="text" id="f_faxMachine" value="${escapeHtml(draft.faxMachine)}"></div>
+        <div class="field full"><label>依頼文</label>
+          <input type="text" id="f_faxRequest" value="${escapeHtml(draft.faxRequest)}"></div>
+        <div class="field"><label>送信枚数（本紙含め）</label>
+          <input type="text" id="f_faxPages" value="${escapeHtml(draft.faxPages||"1")}"></div>
+      </div>
+      <p class="hint">件名・対象機・依頼文は空欄なら、商品名・型式・問合せ種別から自動で入ります（薄い文字が自動の内容）。宛先は保存時に登録され、次回から選ぶだけで使えます。</p>
+    </div>`;
+  $("f_makerSel").addEventListener("change", (ev)=>{
+    const v = ev.target.value;
+    if(v === "__new"){ draft.maker = blankMaker(); draft.makerId = ""; }
+    else{ const f = makers.find(x=>x.id===v); if(f){ draft.maker = Object.assign({}, f); draft.makerId = f.id; } }
+    renderMakerArea(); refreshFaxPlaceholders();
+    if(v === "__new") $("f_mk_name").focus();
+  });
+  refreshFaxPlaceholders();
+}
+function refreshFaxPlaceholders(){
+  if(!$("f_faxSubject")) return;
+  const tmp = {
+    productName: $("f_productName") ? $("f_productName").value : draft.productName,
+    modelSpec: $("f_modelSpec") ? $("f_modelSpec").value : draft.modelSpec,
+    types: ["price","delivery","other"].filter(k=> $("f_type_"+k) ? $("f_type_"+k).checked : (draft.types||[]).includes(k)),
+  };
+  $("f_faxSubject").placeholder = faxAutoSubject(tmp);
+  $("f_faxMachine").placeholder = faxAutoMachine(tmp);
+  $("f_faxRequest").placeholder = faxAutoRequest(tmp);
 }
 
 function renderAutoNotice(){
@@ -1258,6 +1369,23 @@ function collectDraftFromForm(){
   draft.answerNote = $("f_answerNote").value;
   draft.answerText = $("f_answerText").value;
   draft.answerChecked = $("f_answerChecked").checked;
+  const dsel = document.querySelector('input[name="f_dest"]:checked');
+  draft.dest = dsel ? dsel.value : "iwaki";
+  if($("f_mk_name")){
+    const mk = {
+      id: draft.makerId || "",
+      name: $("f_mk_name").value.trim(),
+      dept: $("f_mk_dept").value.trim(),
+      attn: $("f_mk_attn").value.trim(),
+      short: $("f_mk_short").value.trim(),
+      fax: $("f_mk_fax").value.trim(),
+    };
+    draft.maker = mk.name ? mk : (draft.dest==="maker" ? mk : draft.maker);
+    draft.faxSubject = $("f_faxSubject").value;
+    draft.faxMachine = $("f_faxMachine").value;
+    draft.faxRequest = $("f_faxRequest").value;
+    draft.faxPages = $("f_faxPages").value;
+  }
 }
 
 btnSave.addEventListener("click", async ()=>{
@@ -1267,6 +1395,10 @@ btnSave.addEventListener("click", async ()=>{
     return;
   }
   if(!db){ showToast("このブラウザでは保存できません（"+(dbError||"DBを開けません")+"）"); return; }
+  if(draft.dest === "maker" && draft.maker && draft.maker.name){
+    upsertMaker(draft.maker);
+    draft.makerId = draft.maker.id;
+  }
   const isNew = !draft.id;
   if(isNew) draft.id = uid();
   try{
@@ -1309,7 +1441,7 @@ $("btnBackup").addEventListener("click", async ()=>{
       delete c.answerFile;
       out.push(c);
     }
-    const json = JSON.stringify({app:"priceInquiryLedger", version:2, appVersion:APP_VERSION, exportedAt:new Date().toISOString(), entries: out});
+    const json = JSON.stringify({app:"priceInquiryLedger", version:2, appVersion:APP_VERSION, exportedAt:new Date().toISOString(), entries: out, makers});
     const blob = new Blob([json], {type:"application/json"});
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -1330,6 +1462,9 @@ $("restoreFile").addEventListener("change", async (ev)=>{
     const data = JSON.parse(await file.text());
     if(data.app !== "priceInquiryLedger" || !Array.isArray(data.entries)) throw new Error("形式が違います");
     if(!confirm(`${data.entries.length}件を復元します。同じ問合せは上書きされます。よろしいですか？`)) return;
+    if(Array.isArray(data.makers)){
+      data.makers.forEach(m=>{ if(m && m.name) upsertMaker(Object.assign({}, m)); });
+    }
     for(const e of data.entries){
       const ne = Object.assign(blankEntry(), e);
       if(e.answerFileDataUrl){ ne.answerFile = dataUrlToBlob(e.answerFileDataUrl); }
@@ -1415,8 +1550,285 @@ async function exportToExcel(entry){
   showToast("Excelを出力しました");
 }
 btnExportExcel.addEventListener("click", ()=>{
+  const dsel = document.querySelector('input[name="f_dest"]:checked');
+  if(dsel && dsel.value === "maker"){
+    exportFaxDocx().catch(err=>{ console.error(err); showToast("FAX出力中にエラーが発生しました"); });
+    return;
+  }
   exportToExcel(draft).catch(err=>{ console.error(err); showToast("Excel出力中にエラーが発生しました"); });
 });
+
+/* ============ メーカー宛先マスタ ============ */
+const MAKERS_KEY = "priceInquiryLedger_makers_v1";
+const SEED_MAKERS = [
+  {id:"m_fujicomp", name:"株式会社富士コンプレッサー製作所", dept:"名古屋営業所", attn:"", short:"富士コン", fax:""},
+  {id:"m_iyasaka", name:"彌榮精機株式会社", dept:"", attn:"ご担当者", short:"イヤサカ精機", fax:""},
+];
+function loadMakers(){
+  try{
+    const raw = localStorage.getItem(MAKERS_KEY);
+    if(raw){ const arr = JSON.parse(raw); if(Array.isArray(arr)) return arr; }
+  }catch(e){}
+  return SEED_MAKERS.map(m=>Object.assign({}, m));
+}
+function saveMakers(){ try{ localStorage.setItem(MAKERS_KEY, JSON.stringify(makers)); }catch(e){} }
+let makers = loadMakers();
+function blankMaker(){ return {id:"", name:"", dept:"", attn:"ご担当者", short:"", fax:""}; }
+function upsertMaker(m){
+  if(!m || !m.name) return m;
+  if(!m.id) m.id = "m" + Date.now().toString(36) + Math.random().toString(36).slice(2,6);
+  const i = makers.findIndex(x=>x.id===m.id);
+  const copy = {id:m.id, name:m.name, dept:m.dept||"", attn:m.attn||"", short:m.short||"", fax:m.fax||""};
+  if(i>=0) makers[i] = copy; else makers.push(copy);
+  saveMakers();
+  return m;
+}
+
+/* ============ メーカーFAX 文面の自動生成 ============ */
+function faxAutoSubject(e){
+  const t = e.types||[];
+  const what = (t.includes("price") && t.includes("delivery")) ? "部品価格・納期" : (t.includes("delivery") && !t.includes("price")) ? "部品納期" : "部品価格";
+  return `${(e.productName||"").trim()}${what}　問合せの件`;
+}
+function faxAutoMachine(e){
+  return [ (e.productName||"").trim(), (e.modelSpec||"").trim() ].filter(Boolean).join("　・");
+}
+function faxAutoRequest(e){
+  const t = e.types||[];
+  let what = (t.includes("price") && t.includes("delivery")) ? "価格・納期回答" : (t.includes("delivery") && !t.includes("price")) ? "納期回答" : "価格回答";
+  if(t.includes("other")) what += "また供給可能か回答";
+  return `下記部品、${what}お願いいたします。`;
+}
+function faxValues(e){
+  return {
+    subject: (e.faxSubject||"").trim() || faxAutoSubject(e),
+    machine: (e.faxMachine||"").trim() || faxAutoMachine(e),
+    request: (e.faxRequest||"").trim() || faxAutoRequest(e),
+    pages: (e.faxPages||"").toString().trim() || "1",
+  };
+}
+
+/* ============ 最小ZIP（無圧縮）— 外部ライブラリなしで .docx を作る ============ */
+const CRC_TABLE = (()=>{ const t = new Uint32Array(256); for(let n=0;n<256;n++){ let c=n; for(let k=0;k<8;k++) c = (c&1) ? (0xEDB88320 ^ (c>>>1)) : (c>>>1); t[n]=c>>>0; } return t; })();
+function crc32(u8){ let c = 0xFFFFFFFF; for(let i=0;i<u8.length;i++) c = CRC_TABLE[(c ^ u8[i]) & 0xFF] ^ (c>>>8); return (c ^ 0xFFFFFFFF)>>>0; }
+function makeZip(files){
+  const enc = new TextEncoder(); const parts = []; const central = []; let offset = 0;
+  for(const f of files){
+    const nameB = enc.encode(f.name);
+    const data = (typeof f.data === "string") ? enc.encode(f.data) : f.data;
+    const crc = crc32(data);
+    const lh = new DataView(new ArrayBuffer(30));
+    lh.setUint32(0,0x04034b50,true); lh.setUint16(4,20,true); lh.setUint16(6,0x0800,true); lh.setUint16(8,0,true);
+    lh.setUint16(10,0,true); lh.setUint16(12,0x21,true);
+    lh.setUint32(14,crc,true); lh.setUint32(18,data.length,true); lh.setUint32(22,data.length,true);
+    lh.setUint16(26,nameB.length,true); lh.setUint16(28,0,true);
+    parts.push(new Uint8Array(lh.buffer), nameB, data);
+    const ch = new DataView(new ArrayBuffer(46));
+    ch.setUint32(0,0x02014b50,true); ch.setUint16(4,20,true); ch.setUint16(6,20,true); ch.setUint16(8,0x0800,true); ch.setUint16(10,0,true);
+    ch.setUint16(12,0,true); ch.setUint16(14,0x21,true); ch.setUint32(16,crc,true); ch.setUint32(20,data.length,true); ch.setUint32(24,data.length,true);
+    ch.setUint16(28,nameB.length,true); ch.setUint32(42,offset,true);
+    central.push(new Uint8Array(ch.buffer), nameB);
+    offset += 30 + nameB.length + data.length;
+  }
+  const cSize = central.reduce((s,p)=>s+p.length,0);
+  const end = new DataView(new ArrayBuffer(22));
+  end.setUint32(0,0x06054b50,true); end.setUint16(8,files.length,true); end.setUint16(10,files.length,true);
+  end.setUint32(12,cSize,true); end.setUint32(16,offset,true);
+  return new Blob([...parts, ...central, new Uint8Array(end.buffer)], {type:"application/vnd.openxmlformats-officedocument.wordprocessingml.document"});
+}
+
+/* ============ FAX送付状 (.docx) の組み立て ============ */
+const W_MINCHO = "ＭＳ 明朝", W_GOTHIC = "ＭＳ ゴシック";
+const xe = (s)=> String(s==null?"":s).replace(/[&<>"]/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+function wRun(text, o={}){
+  const font = o.font || W_MINCHO, ascii = o.ascii || font, sz = o.sz || 21;
+  const rpr = `<w:rPr><w:rFonts w:ascii="${ascii}" w:hAnsi="${ascii}" w:eastAsia="${font}"/>${o.b?"<w:b/>":""}${o.i?"<w:i/>":""}${o.color?`<w:color w:val="${o.color}"/>`:""}<w:sz w:val="${sz}"/><w:szCs w:val="${sz}"/>${o.u?'<w:u w:val="single"/>':""}</w:rPr>`;
+  const body = String(text==null?"":text).split("\t").map(s=> s ? `<w:t xml:space="preserve">${xe(s)}</w:t>` : "").join("<w:tab/>");
+  return `<w:r>${rpr}${body}</w:r>`;
+}
+function wPara(runs, o={}){
+  const tabs = o.tabs ? `<w:tabs>${o.tabs.map(p=>`<w:tab w:val="left" w:pos="${p}"/>`).join("")}</w:tabs>` : "";
+  const shd = o.shd ? `<w:shd w:val="clear" w:color="auto" w:fill="${o.shd}"/>` : "";
+  const ind = o.ind ? `<w:ind w:left="${o.ind}"/>` : "";
+  const line = o.line ? ` w:line="${o.line}" w:lineRule="exact"` : "";
+  return `<w:p><w:pPr>${tabs}${shd}<w:spacing w:before="0" w:after="${o.after||0}"${line}/>${ind}${o.jc?`<w:jc w:val="${o.jc}"/>`:""}</w:pPr>${runs||""}</w:p>`;
+}
+function wTable(rows, widths, o={}){
+  const kinds = ["top","left","bottom","right","insideH","insideV"];
+  const borders = o.borders === false
+    ? kinds.map(k=>`<w:${k} w:val="nil"/>`).join("")
+    : kinds.map(k=>`<w:${k} w:val="single" w:sz="6" w:space="0" w:color="000000"/>`).join("");
+  const total = widths.reduce((a,b)=>a+b,0);
+  const trs = rows.map(r=>{
+    const trPr = r.h ? `<w:trPr><w:trHeight w:val="${r.h}"/></w:trPr>` : "";
+    const tcs = r.cells.map((c,i)=>`<w:tc><w:tcPr><w:tcW w:w="${widths[i]}" w:type="dxa"/>${c.vAlign?`<w:vAlign w:val="${c.vAlign}"/>`:""}</w:tcPr>${c.content}</w:tc>`).join("");
+    return `<w:tr>${trPr}${tcs}</w:tr>`;
+  }).join("");
+  return `<w:tbl><w:tblPr><w:tblW w:w="${total}" w:type="dxa"/><w:tblLayout w:type="fixed"/><w:tblBorders>${borders}</w:tblBorders><w:tblCellMar><w:left w:w="50" w:type="dxa"/><w:right w:w="50" w:type="dxa"/></w:tblCellMar></w:tblPr><w:tblGrid>${widths.map(w=>`<w:gridCol w:w="${w}"/>`).join("")}</w:tblGrid>${trs}</w:tbl>`;
+}
+
+/* entry: 問合せ / maker: 宛先 / sender: {company,branch,requester,tel,fax,email} / img: {bytes,ext,w,h}|null */
+function buildFaxDocx(entry, maker, sender, img){
+  const fv = faxValues(entry);
+  const PAGE_W = 11906, MARGIN = 1418, CW = PAGE_W - MARGIN*2;   // 本文幅 9070
+  const LW = 4250, GAP = 520, RW = CW - LW - GAP;
+  const bar = (h=200)=> wPara(wRun(" ", {sz:4}), {shd:"000000", line:h});
+  const head = (t)=> wPara(wRun(t||" ", {font:W_GOTHIC, sz:20, color:"FFFFFF"}), {shd:"000000"});
+  const cellP = (t, jc, o={})=> ({content: wPara(o.label ? wRun(o.label, {font:W_GOTHIC, sz:17, i:true}) + wRun(t, {font:W_GOTHIC, sz:o.sz||19}) : wRun(t, {font:W_GOTHIC, sz:o.sz||19}), {jc})});
+  const row = (cells)=> ({h:340, cells});
+
+  const d = entry.issueDate ? new Date(entry.issueDate+"T00:00:00") : new Date();
+  const dateStr = `${d.getFullYear()} 年 ${String(d.getMonth()+1).padStart(2,"0")} 月 ${String(d.getDate()).padStart(2,"0")} 日`;
+
+  // タイトル行（FAX ＋ 日付）
+  const title = wTable([{cells:[
+    {content: wPara(wRun("ＦＡＸ", {font:W_GOTHIC, ascii:"Arial Black", sz:80, b:true}))},
+    {vAlign:"bottom", content: wPara(wRun(dateStr, {font:W_GOTHIC, sz:19}), {jc:"right", after:60})},
+  ]}], [CW-3600, 3600], {borders:false});
+
+  // 送信先・件名（左）
+  const m = maker || {};
+  const left =
+    head("送信先") +
+    wTable([
+      row([cellP(m.name||"", "right")]),
+      row([cellP(`${m.dept ? m.dept+"　" : ""}御中`, "right")]),
+      row([cellP(m.attn ? `${m.attn} 様` : "", "right")]),
+    ], [LW]) +
+    wPara("", {line:300}) +
+    head(" ") +
+    wTable([
+      row([cellP(fv.subject, "right", {sz: fv.subject.length > 20 ? 15 : fv.subject.length > 16 ? 17 : 19})]),
+      row([cellP("", "right")]),
+    ], [LW]) +
+    wPara("");
+
+  // 送信元・送信枚数（右）
+  const s = sender || {};
+  const srcRows = [
+    row([cellP(s.company||"", "left", {label:"[会社名] "})]),
+    row([cellP(s.branch||"", "left", {label:"[部署名] "})]),
+    row([cellP(`　　　　${s.requester||""}`, "left")]),
+    row([cellP(`電話　　　${s.tel||""}`, "left")]),
+    row([cellP(`FAX　　　 ${s.fax||""}`, "left")]),
+  ];
+  if(s.email) srcRows.push(row([cellP(`e-mail　 ${s.email}`, "left")]));
+  const right =
+    head("送信元") +
+    wTable(srcRows, [RW]) +
+    wPara("", {line:300}) +
+    head("送信枚数") +
+    wTable([ row([cellP(`本紙含め　${fv.pages}枚`, "left", {label:"[枚数] "})]) ], [RW]) +
+    wPara("");
+
+  const blocks = wTable([{cells:[ {content:left}, {content:wPara("")}, {content:right} ]}], [LW, GAP, RW], {borders:false});
+
+  // 本文
+  const B = {sz:22};
+  const TAB_AT = 3400, TAB_END = 7400;
+  const bodyLines = [];
+  bodyLines.push(wPara(wRun("いつも、大変お世話になっております。", B)));
+  if(fv.machine) bodyLines.push(wPara(wRun(`　表題の件、${fv.machine}`, B)));
+  bodyLines.push(wPara(wRun(fv.request, B), {after:200}));
+  const wantDelivery = (entry.types||[]).includes("delivery");
+  (entry.inquiryContent||"").split("\n").map(x=>x.replace(/\s+$/,"")).filter(x=>x.trim()).forEach(line=>{
+    if(/^[※＊*]/.test(line.trim())){                       // ※で始まる行は注記としてそのまま
+      bodyLines.push(wPara(wRun(line.trim(), B), {after:200}));
+      return;
+    }
+    const name = line.trim().replace(/^[・･\-－]\s*/, "");
+    bodyLines.push(wPara(wRun(`・${name}\t＠`, B) + wRun("\t", Object.assign({u:true}, B)) + wRun("円", B), {tabs:[TAB_AT, TAB_END], after: wantDelivery ? 60 : 200}));
+    if(wantDelivery){
+      bodyLines.push(wPara(wRun(`\t納期`, B) + wRun("\t", Object.assign({u:true}, B)), {tabs:[TAB_AT, TAB_END], after:200}));
+    }
+  });
+  bodyLines.push(wPara(wRun("以上ご査収の程、宜しくお願い致します。", B), {after:120}));
+
+  // 部品図
+  let drawing = "";
+  if(img && img.bytes && img.w && img.h){
+    const EMU_PER_TWIP = 635;
+    const maxW = CW * EMU_PER_TWIP, maxH = 2900000;        // 約8cm
+    let cx = maxW, cy = Math.round(maxW * img.h / img.w);
+    if(cy > maxH){ cy = maxH; cx = Math.round(maxH * img.w / img.h); }
+    drawing = `<w:p><w:pPr><w:spacing w:before="0" w:after="0"/><w:jc w:val="left"/></w:pPr><w:r><w:drawing><wp:inline distT="0" distB="0" distL="0" distR="0"><wp:extent cx="${cx}" cy="${cy}"/><wp:docPr id="1" name="部品図"/><wp:cNvGraphicFramePr><a:graphicFrameLocks noChangeAspect="1"/></wp:cNvGraphicFramePr><a:graphic><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:pic><pic:nvPicPr><pic:cNvPr id="1" name="image1.${img.ext}"/><pic:cNvPicPr/></pic:nvPicPr><pic:blipFill><a:blip r:embed="rIdImg1"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill><pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="${cx}" cy="${cy}"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr></pic:pic></a:graphicData></a:graphic></wp:inline></w:drawing></w:r></w:p>`;
+  }
+
+  const body =
+    wPara("", {line:400}) + bar() + wPara("", {line:120}) +
+    title + wPara("", {line:160}) +
+    blocks +
+    wPara("", {line:240}) + bar() + wPara("", {line:240}) +
+    bodyLines.join("") + drawing;
+
+  const documentXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture"><w:body>${body}<w:sectPr><w:pgSz w:w="${PAGE_W}" w:h="16838"/><w:pgMar w:top="851" w:right="${MARGIN}" w:bottom="851" w:left="${MARGIN}" w:header="567" w:footer="567" w:gutter="0"/></w:sectPr></w:body></w:document>`;
+
+  const stylesXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<w:styles xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:docDefaults><w:rPrDefault><w:rPr><w:rFonts w:ascii="${W_MINCHO}" w:eastAsia="${W_MINCHO}" w:hAnsi="${W_MINCHO}" w:cs="Times New Roman"/><w:kern w:val="2"/><w:sz w:val="21"/><w:szCs w:val="21"/><w:lang w:val="en-US" w:eastAsia="ja-JP" w:bidi="ar-SA"/></w:rPr></w:rPrDefault><w:pPrDefault><w:pPr><w:widowControl w:val="0"/><w:jc w:val="both"/></w:pPr></w:pPrDefault></w:docDefaults><w:style w:type="paragraph" w:default="1" w:styleId="a"><w:name w:val="Normal"/></w:style><w:style w:type="table" w:default="1" w:styleId="a1"><w:name w:val="Normal Table"/><w:tblPr><w:tblInd w:w="0" w:type="dxa"/><w:tblCellMar><w:top w:w="0" w:type="dxa"/><w:left w:w="108" w:type="dxa"/><w:bottom w:w="0" w:type="dxa"/><w:right w:w="108" w:type="dxa"/></w:tblCellMar></w:tblPr></w:style></w:styles>`;
+
+  const ct = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Default Extension="png" ContentType="image/png"/><Default Extension="jpeg" ContentType="image/jpeg"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/><Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/></Types>`;
+  const rels = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/></Relationships>`;
+  const docRels = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rIdStyles" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>${drawing ? `<Relationship Id="rIdImg1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/image1.${img.ext}"/>` : ""}</Relationships>`;
+
+  const files = [
+    {name:"[Content_Types].xml", data:ct},
+    {name:"_rels/.rels", data:rels},
+    {name:"word/document.xml", data:documentXml},
+    {name:"word/styles.xml", data:stylesXml},
+    {name:"word/_rels/document.xml.rels", data:docRels},
+  ];
+  if(drawing) files.push({name:`word/media/image1.${img.ext}`, data:img.bytes});
+  return makeZip(files);
+}
+
+function loadImageSize(dataUrl){
+  return new Promise((resolve)=>{
+    const im = new Image();
+    im.onload = ()=> resolve({w:im.naturalWidth, h:im.naturalHeight});
+    im.onerror = ()=> resolve(null);
+    im.src = dataUrl;
+  });
+}
+async function exportFaxDocx(){
+  collectDraftFromForm();
+  const entry = draft;
+  const maker = entry.maker || {};
+  if(!maker.name){ showToast("宛先メーカーの会社名を入力してください"); return; }
+  let img = null;
+  if(entry.photoDataUrl){
+    const size = await loadImageSize(entry.photoDataUrl);
+    if(size){
+      const ext = entry.photoDataUrl.startsWith("data:image/png") ? "png" : "jpeg";
+      const bin = atob(dataUrlToBase64(entry.photoDataUrl));
+      const bytes = new Uint8Array(bin.length);
+      for(let i=0;i<bin.length;i++) bytes[i] = bin.charCodeAt(i);
+      img = {bytes, ext, w:size.w, h:size.h};
+    }
+  }
+  const sender = {
+    company: defaults.company || "",
+    branch: defaults.branch || "",
+    requester: defaults.requester || "",
+    tel: defaults.tel || "",
+    fax: defaults.fax || "",
+    email: defaults.email || "",
+  };
+  const blob = buildFaxDocx(entry, maker, sender, img);
+  const d = entry.issueDate ? entry.issueDate.replace(/-/g,"").slice(2) : todayStr().replace(/-/g,"").slice(2);
+  const who = (maker.short || maker.name || "メーカー").replace(/[\\/:*?"<>|]/g,"_");
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `${d}_送付状(${who}).docx`;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=> URL.revokeObjectURL(url), 5000);
+  showToast("FAX送付状（Word）を出力しました");
+}
+
 
 /* ============ 初期化 ============ */
 (async function init(){
