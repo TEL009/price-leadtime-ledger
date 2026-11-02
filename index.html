@@ -289,7 +289,7 @@ details.reader{
 <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
 <script>
 /* ============ バージョン ============ */
-const APP_VERSION = "1.3.1";          // 変更したら CHANGELOG.md も更新する
+const APP_VERSION = "1.3.2";          // 変更したら CHANGELOG.md も更新する
 const APP_BUILD_DATE = "2026-11-02";
 
 /* ============ テンプレート(元Excel/base64) ============ */
@@ -1631,7 +1631,7 @@ async function buildFaxXlsx(entry, maker, sender, img){
     const cell = ws.getCell(`${colL(c1)}${r}`);
     cell.value = value;
     cell.font = {name:o.font||MIN, size:o.size||10.5, bold:!!o.bold, color:o.color?{argb:o.color}:undefined};
-    cell.alignment = {horizontal:o.h||"left", vertical:o.v||"middle", wrapText:!!o.wrap, shrinkToFit:!!o.shrink};
+    cell.alignment = {horizontal:o.h||"left", vertical:o.v||"middle", wrapText:!!o.wrap, shrinkToFit:!!o.shrink, indent:o.indent||0};
     if(o.fill) for(let c=c1;c<=c2;c++) ws.getCell(`${colL(c)}${r}`).fill = o.fill;
     if(o.border) for(let c=c1;c<=c2;c++){
       const b = {top:thin, bottom:thin};
@@ -1650,23 +1650,30 @@ async function buildFaxXlsx(entry, maker, sender, img){
   const dateStr = `${d.getFullYear()} 年 ${String(d.getMonth()+1).padStart(2,"0")} 月 ${String(d.getDate()).padStart(2,"0")} 日`;
   const L1 = 1, L2 = 5, R1 = 7, R2 = 12;   // 左ブロック A〜E、右ブロック G〜L
   const m = maker || {}, s = sender || {};
-  const tbl = {font:GOT, size:10, border:true};
+  const tbl = {font:GOT, size:10, border:true, indent:1};
 
   height(1, 10);
   bar(2);
   height(3, 8);
-  put(4, 1, 6, "ＦＡＸ", {font:"Arial Black", size:34, bold:true, v:"bottom"}); height(4, 46);
+  put(4, 1, 6, "F A X", {font:"Arial Black", size:36, v:"bottom"}); height(4, 50);
   put(4, 8, 12, dateStr, {font:GOT, size:10, h:"right", v:"bottom"});
   height(5, 10);
 
   // 左：送信先・件名
   head(6, L1, L2, "送信先");
-  put(7, L1, L2, m.name||"", Object.assign({h:"right", shrink:true}, tbl));
+  put(7, L1, L2, m.name||"", Object.assign({h:"right", shrink:true, indent:1}, tbl, {size:11}));
   put(8, L1, L2, `${m.dept ? m.dept+"　" : ""}御中`, Object.assign({h:"right"}, tbl));
   put(9, L1, L2, m.attn ? `${m.attn} 様` : "", Object.assign({h:"right"}, tbl));
   head(11, L1, L2, "");
-  put(12, L1, L2, fv.subject, Object.assign({h:"right", wrap:true}, tbl)); height(12, fv.subject.length > 20 ? 30 : 17);
-  put(13, L1, L2, "", tbl);
+  let subj1 = fv.subject, subj2 = "";
+  if(fv.subject.length > 18){
+    const k = fv.subject.indexOf("部品");
+    const sp = fv.subject.search(/[ 　]/);
+    const at = k > 0 ? k : (sp > 0 ? sp : -1);
+    if(at > 0){ subj1 = fv.subject.slice(0, at).trim(); subj2 = fv.subject.slice(at).trim(); }
+  }
+  put(12, L1, L2, subj1, Object.assign({h:"right", shrink:true, indent:1}, tbl));
+  put(13, L1, L2, subj2, Object.assign({h:"right", shrink:true, indent:1}, tbl));
 
   // 右：送信元・送信枚数
   head(6, R1, R2, "送信元");
@@ -1682,13 +1689,13 @@ async function buildFaxXlsx(entry, maker, sender, img){
   const pagesRow = 7 + src.length + 1;
   head(pagesRow, R1, R2, "送信枚数");
   put(pagesRow+1, R1, R2, `[枚数] 本紙含め　${fv.pages}枚`, tbl);
-  for(let r=6; r<=pagesRow+1; r++) if(!ws.getRow(r).height) height(r, 17);
+  for(let r=6; r<=Math.max(13, pagesRow+1); r++) if(!ws.getRow(r).height) height(r, 19);
 
   let r = Math.max(14, pagesRow+2) + 1;
   bar(r); r += 2;
 
   // 本文
-  const B = {size:11};
+  const B = {size:11, indent:1};
   put(r++, 1, COLS, "いつも、大変お世話になっております。", B);
   if(fv.machine) put(r++, 1, COLS, `　表題の件、${fv.machine}`, B);
   put(r++, 1, COLS, fv.request, B);
@@ -1701,12 +1708,12 @@ async function buildFaxXlsx(entry, maker, sender, img){
     }
     const name = line.trim().replace(/^[・･\-－]\s*/, "");
     put(r, 1, 5, `・${name}`, Object.assign({shrink:true}, B));
-    put(r, 6, 6, "＠", Object.assign({h:"right"}, B));
+    put(r, 6, 6, "＠", {size:11, h:"right"});
     put(r, 7, 10, "", Object.assign({under:true}, B));
-    put(r, 11, 11, "円", B);
+    put(r, 11, 11, "円", {size:11});
     height(r, 20); r++;
     if(wantDelivery){
-      put(r, 6, 6, "納期", Object.assign({h:"right"}, B));
+      put(r, 6, 6, "納期", {size:11, h:"right"});
       put(r, 7, 10, "", Object.assign({under:true}, B));
       height(r, 20); r++;
     }
